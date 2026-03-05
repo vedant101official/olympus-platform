@@ -1,6 +1,6 @@
 import bcrypt from "bcrypt";
 import mongoose from "mongoose";
-import User, { Role } from  "./user.model";
+import User, { Role } from "./user.model";
 import Tenant from "../tenants/tenants.model";
 
 interface CreateUserInterface {
@@ -13,7 +13,7 @@ interface CreateUserInterface {
 
 export const CreateUser = async (userData: CreateUserInterface) => {
     const { name, email, password, role, tenantId } = userData;
-    
+
     const tenant = await Tenant.findById(tenantId);
     if (!tenant) {
         throw new Error("Tenant not found");
@@ -36,3 +36,111 @@ export const CreateUser = async (userData: CreateUserInterface) => {
     return await user;
 }
 
+interface SoftDeleteUserInterface {
+    userId: string;
+    currentUser: {
+        userId: string;
+        tenantId: string;
+        role: string;
+    }
+}
+
+export const softDeleteUser = async ({ userId, currentUser }: SoftDeleteUserInterface) => {
+    const user = await User.findOne({
+        _id: userId,
+        tenantId: currentUser.tenantId,
+        isActive: true
+    })
+
+    if (!user) {
+        throw new Error("User not found");
+    }
+
+    if (user.role === Role.SUPER_ADMIN) {
+        throw new Error("Not allowed to delete SUPER_ADMIN");
+    }
+
+    if (
+        currentUser.role !== Role.SUPER_ADMIN &&
+        currentUser.role !== Role.TENANT_ADMIN
+    ) {
+        throw new Error("You are not authorized to delete users");
+    }
+
+    if (
+        currentUser.role === Role.TENANT_ADMIN &&
+        user.tenantId.toString() !== currentUser.tenantId.toString()
+    ) {
+        throw new Error("Cannot delete user from another tenant");
+    }
+
+    if (user.role === Role.TENANT_ADMIN) {
+        const adminCount = await User.countDocuments({
+            tenantId: currentUser.tenantId,
+            role: Role.TENANT_ADMIN,
+            isActive: true
+        });
+
+        if (adminCount <= 1) {
+            throw new Error("Cannot delete the only TENANT_ADMIN in the tenant");
+        }
+    }
+
+    user.isActive = false;
+    user.deletedAt = new Date();
+    user.deletedBy = new mongoose.Types.ObjectId(currentUser.userId);
+    await user.save();
+
+    return user;
+}
+
+
+export  const restoreUser = async ({ userId, currentUser }: SoftDeleteUserInterface) => {
+    const user = await User.findOne({
+        _id: userId,
+        tenantId: currentUser.tenantId,
+        isActive: true
+    })
+
+    if (!user) {
+        throw new Error("User not found");
+    }
+
+    if (user.role === Role.SUPER_ADMIN) {
+        throw new Error("Not allowed to restore SUPER_ADMIN");
+    }
+
+    if (
+        currentUser.role !== Role.SUPER_ADMIN &&
+        currentUser.role !== Role.TENANT_ADMIN
+    ) {
+        throw new Error("You are not authorized to restore users");
+    }
+
+    if (
+        currentUser.role === Role.TENANT_ADMIN &&
+        user.tenantId.toString() !== currentUser.tenantId.toString()
+    ) {
+        throw new Error("Cannot restore user from another tenant");
+    }
+
+    user.isActive = true;
+    user.deletedAt = null;
+    user.deletedBy = null;
+    await user.save();
+
+    return user;
+}
+
+export const  hardDeleteUser = async ({ userId, currentUser }: SoftDeleteUserInterface) => {
+    
+    if (
+        currentUser.role !== Role.SUPER_ADMIN
+    ) {
+        throw new Error("You are not authorized to hard delete users");
+    }
+    
+    await User.findByIdAndDelete(userId);
+    return { message: "User hard deleted successfully" };
+    
+}

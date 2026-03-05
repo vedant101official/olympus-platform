@@ -14,6 +14,8 @@ export interface UserDocument extends Document {
     role: Role;
     tenantId: mongoose.Types.ObjectId;
     isActive: boolean;
+    deletedAt: Date | null;
+    deletedBy: mongoose.Types.ObjectId | null;
 }
 
 const userSchema: Schema = new Schema<UserDocument>({
@@ -23,11 +25,13 @@ const userSchema: Schema = new Schema<UserDocument>({
     role: { type: String, enum: Object.values(Role), required: true },
     tenantId: { type: mongoose.Schema.Types.ObjectId, ref: "Tenant", required: true },
     isActive: { type: Boolean, default: true },
+    deletedAt: { type: Date, default: null },
+    deletedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
 }, {
     timestamps: true,
 });
 
-userSchema.index({ email: 1, tenant: 1 }, { unique: true });
+userSchema.index({ email: 1, tenantId: 1 }, { unique: true });
 userSchema.set("toJSON", {
   transform: function (doc, ret) {
     delete ret.password;

@@ -10,9 +10,13 @@ interface LoginInput {
 }
 
 export const LoginUser = async ({email, password, tenantId}: LoginInput) => {
-    const user = await User.findOne({ email, tenantId }).select('+password');
+    const user = await User.findOne({ email, tenantId, isActive: true }).select('+password');
     if (!user) {
         throw new Error('Invalid email or password');
+    }
+
+    if (!user.isActive) {
+        throw new Error('User account is deactivated');
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
