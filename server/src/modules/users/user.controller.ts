@@ -1,5 +1,33 @@
 import { Request, Response, NextFunction } from "express";
-import { CreateUser, softDeleteUser, restoreUser, hardDeleteUser } from "./user.service";
+import { CreateUser, softDeleteUser, restoreUser, hardDeleteUser, getAllUsersService, getUserByIdService } from "./user.service";
+
+export const getAllUsers = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const users = await getAllUsersService({ user: req.user! });
+        res.status(200).json({ success: true, data: users });
+    } catch (error) {
+        next(error);
+    }
+}
+
+export const getUserById = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const userId = req.params.id as string;
+        if (!userId) {
+            console.log("Missing userId in request params");
+            throw new Error("Missing userId");
+        }
+
+        if (!req.user) {
+            throw new Error("Unauthorized");
+        }
+
+        const user = await getUserByIdService({ userId, currentUser: req.user! });
+        res.status(200).json({ success: true, data: user });
+    } catch (error) {
+        next(error);
+    }
+}
 
 export const registerUser = async (req: Request, res: Response, next: NextFunction) => {
     try {

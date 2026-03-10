@@ -36,6 +36,44 @@ export const CreateUser = async (userData: CreateUserInterface) => {
     return await user;
 }
 
+interface GetAllUsersServices {
+    user: {
+        tenantId: string;
+        role: string;
+    }
+}
+
+export const getAllUsersService = async ({ user }: GetAllUsersServices) => {
+    console.log("Getting all users for tenant:", user.tenantId, "with role:", user.role);
+    if (user.role !== Role.SUPER_ADMIN && user.role !== Role.TENANT_ADMIN) {
+        throw new Error("You are not authorized to view users");
+    }
+    
+    const users = await User.find({ tenantId: user.tenantId }).select("-password");
+    return users;
+}
+
+interface GetUserByIdInterface {
+    userId: string;
+    currentUser: {
+        tenantId: string;
+        role: string;
+    }
+}
+
+export const getUserByIdService = async ({ userId, currentUser }: GetUserByIdInterface) => {
+    if (currentUser.role !== Role.SUPER_ADMIN && currentUser.role !== Role.TENANT_ADMIN) {
+        throw new Error("You are not authorized to view users");
+    }
+
+    const user = await User.findOne({ _id: userId, tenantId: currentUser.tenantId }).select("-password");
+    if (!user) {
+        throw new Error("User not found");
+    }
+
+    return user;
+}
+
 interface SoftDeleteUserInterface {
     userId: string;
     currentUser: {
@@ -99,7 +137,7 @@ export  const restoreUser = async ({ userId, currentUser }: SoftDeleteUserInterf
     const user = await User.findOne({
         _id: userId,
         tenantId: currentUser.tenantId,
-        isActive: true
+        isActive: false
     })
 
     if (!user) {
