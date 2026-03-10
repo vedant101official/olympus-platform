@@ -9,10 +9,19 @@ interface CreateUserInterface {
     password: string;
     role: Role;
     tenantId: string;
+    registrarTenantId: string;
+    registrarRole: string;
 }
 
 export const CreateUser = async (userData: CreateUserInterface) => {
-    const { name, email, password, role, tenantId } = userData;
+    const { name, email, password, role, tenantId, registrarTenantId, registrarRole } = userData;
+    if(registrarRole !== Role.SUPER_ADMIN && registrarRole !== Role.TENANT_ADMIN) {
+        throw new Error("You are not authorized to create users");
+    }
+
+    if (registrarRole === Role.TENANT_ADMIN && tenantId !== registrarTenantId) {
+        throw new Error("You cannot create users for another tenant");
+    }
 
     const tenant = await Tenant.findById(tenantId);
     if (!tenant) {

@@ -31,12 +31,16 @@ export const getUserById = async (req: Request, res: Response, next: NextFunctio
 
 export const registerUser = async (req: Request, res: Response, next: NextFunction) => {
     try {
+        console.log("Registering user with data:", req.user);
+        const registrarTenantId = req.user?.tenantId;
+        const registrarRole = req.user?.role;
+        console.log("Registering user with data:", req.user?.tenantId, req.user?.role);
         const { name, email, password, role, tenantId } = req.body;
         if (!name || !email || !password || !tenantId) {
             throw new Error("Missing required fields");
         }
 
-        const user = await CreateUser({ name, email, password, role, tenantId });
+        const user = await CreateUser({ name, email, password, role, tenantId, registrarTenantId: registrarTenantId!, registrarRole: registrarRole! });
         await user.save();
 
         res.status(201).json({ success: true, data: user });
