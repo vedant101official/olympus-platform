@@ -1,5 +1,12 @@
 import mongoose, { Schema, Document } from "mongoose";
 
+export enum Role {
+    SUPER_ADMIN = "SUPER_ADMIN",
+    TENANT_ADMIN = "TENANT_ADMIN",
+    TEACHER_USER = "TEACHER_USER",
+    STUDENT_USER = "STUDENT_USER",
+}
+
 export interface ITenant extends Document {
     name: string;
     slug: string;
