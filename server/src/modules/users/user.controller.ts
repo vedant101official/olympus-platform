@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from "express";
+import { AppError } from "../../core/middleware/error.middleware";
 import { CreateUser, softDeleteUser, restoreUser, hardDeleteUser, getAllUsersService, getUserByIdService } from "./user.service";
 
 export const getAllUsers = async (req: Request, res: Response, next: NextFunction) => {
@@ -15,11 +16,11 @@ export const getUserById = async (req: Request, res: Response, next: NextFunctio
         const userId = req.params.id as string;
         if (!userId) {
             console.log("Missing userId in request params");
-            throw new Error("Missing userId");
+            throw new AppError("Missing userId", 400);
         }
 
         if (!req.user) {
-            throw new Error("Unauthorized");
+            throw new AppError("Unauthorized", 401);
         }
 
         const user = await getUserByIdService({ userId, currentUser: req.user! });
@@ -31,13 +32,11 @@ export const getUserById = async (req: Request, res: Response, next: NextFunctio
 
 export const registerUser = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        console.log("Registering user with data:", req.user);
         const registrarTenantId = req.user?.tenantId;
         const registrarRole = req.user?.role;
-        console.log("Registering user with data:", req.user?.tenantId, req.user?.role);
         const { name, email, password, role, tenantId } = req.body;
         if (!name || !email || !password || !tenantId) {
-            throw new Error("Missing required fields");
+            throw new AppError("Missing required fields", 400);
         }
 
         const user = await CreateUser({ name, email, password, role, tenantId, registrarTenantId: registrarTenantId!, registrarRole: registrarRole! });
@@ -54,11 +53,11 @@ export const deactivateUser = async (req: Request, res: Response, next: NextFunc
         const userId = req.params.id as string;
         if (!userId) {
             console.log("Missing userId in request params");
-            throw new Error("Missing userId");
+            throw new AppError("Missing userId", 400);
         }
 
         if (!req.user) {
-            throw new Error("Unauthorized");
+            throw new AppError("Unauthorized", 401);
         }
 
         const user = await softDeleteUser({ userId, currentUser: req.user! });
@@ -73,11 +72,11 @@ export const activateUser = async (req: Request, res: Response, next: NextFuncti
         const userId = req.params.id as string;
         if (!userId) {
             console.log("Missing userId in request params");
-            throw new Error("Missing userId");
+            throw new AppError("Missing userId", 400);
         }
 
         if (!req.user) {
-            throw new Error("Unauthorized");
+            throw new AppError("Unauthorized", 401);
         }
 
         const user = await restoreUser({ userId, currentUser: req.user! });
@@ -92,11 +91,11 @@ export const deleteUser = async (req: Request, res: Response, next: NextFunction
         const userId = req.params.id as string;
         if (!userId) {
             console.log("Missing userId in request params");
-            throw new Error("Missing userId");
+            throw new AppError("Missing userId", 400);
         }
 
         if (!req.user) {
-            throw new Error("Unauthorized");
+            throw new AppError("Unauthorized", 401);
         }
 
         const user = await hardDeleteUser({ userId, currentUser: req.user! });

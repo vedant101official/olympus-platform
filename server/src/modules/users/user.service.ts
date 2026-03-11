@@ -2,6 +2,7 @@ import bcrypt from "bcrypt";
 import mongoose from "mongoose";
 import User, { Role } from "./user.model";
 import Tenant from "../tenants/tenants.model";
+import { AppError } from "../../core/middleware/error.middleware";
 
 interface CreateUserInterface {
     name: string;
@@ -16,20 +17,20 @@ interface CreateUserInterface {
 export const CreateUser = async (userData: CreateUserInterface) => {
     const { name, email, password, role, tenantId, registrarTenantId, registrarRole } = userData;
     if(registrarRole !== Role.SUPER_ADMIN && registrarRole !== Role.TENANT_ADMIN) {
-        throw new Error("You are not authorized to create users");
+        throw new AppError("You are not authorized to create users", 401);
     }
 
     if (registrarRole === Role.TENANT_ADMIN && tenantId !== registrarTenantId) {
-        throw new Error("You cannot create users for another tenant");
+        throw new AppError("You cannot create users for another tenant", 403);
     }
 
     const tenant = await Tenant.findById(tenantId);
     if (!tenant) {
-        throw new Error("Tenant not found");
+        throw new AppError("Tenant not found", 404);
     }
     const existingUser = await User.findOne({ email, tenantId });
     if (existingUser) {
-        throw new Error("User with this email already exists in the tenant");
+        throw new AppError("User with this email already exists in the tenant", 409);
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -53,9 +54,8 @@ interface GetAllUsersServices {
 }
 
 export const getAllUsersService = async ({ user }: GetAllUsersServices) => {
-    console.log("Getting all users for tenant:", user.tenantId, "with role:", user.role);
     if (user.role !== Role.SUPER_ADMIN && user.role !== Role.TENANT_ADMIN) {
-        throw new Error("You are not authorized to view users");
+        throw new AppError("You are not authorized to view users", 401);
     }
     
     const users = await User.find({ tenantId: user.tenantId }).select("-password");
@@ -72,12 +72,12 @@ interface GetUserByIdInterface {
 
 export const getUserByIdService = async ({ userId, currentUser }: GetUserByIdInterface) => {
     if (currentUser.role !== Role.SUPER_ADMIN && currentUser.role !== Role.TENANT_ADMIN) {
-        throw new Error("You are not authorized to view users");
+        throw new AppError("You are not authorized to view users", 401);
     }
 
     const user = await User.findOne({ _id: userId, tenantId: currentUser.tenantId }).select("-password");
     if (!user) {
-        throw new Error("User not found");
+        throw new AppError("User not found", 404);
     }
 
     return user;
@@ -100,25 +100,25 @@ export const softDeleteUser = async ({ userId, currentUser }: SoftDeleteUserInte
     })
 
     if (!user) {
-        throw new Error("User not found");
+        throw new AppError("User not found", 404);
     }
 
     if (user.role === Role.SUPER_ADMIN) {
-        throw new Error("Not allowed to delete SUPER_ADMIN");
+        throw new AppError("Not allowed to delete SUPER_ADMIN", 403);
     }
 
     if (
         currentUser.role !== Role.SUPER_ADMIN &&
         currentUser.role !== Role.TENANT_ADMIN
     ) {
-        throw new Error("You are not authorized to delete users");
+        throw new AppError("You are not authorized to delete users", 401);
     }
 
     if (
         currentUser.role === Role.TENANT_ADMIN &&
         user.tenantId.toString() !== currentUser.tenantId.toString()
     ) {
-        throw new Error("Cannot delete user from another tenant");
+        throw new AppError("Cannot delete user from another tenant", 403);
     }
 
     if (user.role === Role.TENANT_ADMIN) {
@@ -129,7 +129,7 @@ export const softDeleteUser = async ({ userId, currentUser }: SoftDeleteUserInte
         });
 
         if (adminCount <= 1) {
-            throw new Error("Cannot delete the only TENANT_ADMIN in the tenant");
+            throw new AppError("Cannot delete the only TENANT_ADMIN in the tenant", 403);
         }
     }
 
@@ -150,25 +150,25 @@ export  const restoreUser = async ({ userId, currentUser }: SoftDeleteUserInterf
     })
 
     if (!user) {
-        throw new Error("User not found");
+        throw new AppError("User not found", 404);
     }
 
     if (user.role === Role.SUPER_ADMIN) {
-        throw new Error("Not allowed to restore SUPER_ADMIN");
+        throw new AppError("Not allowed to restore SUPER_ADMIN", 403);
     }
 
     if (
         currentUser.role !== Role.SUPER_ADMIN &&
         currentUser.role !== Role.TENANT_ADMIN
     ) {
-        throw new Error("You are not authorized to restore users");
+        throw new AppError("You are not authorized to restore users", 401);
     }
 
     if (
         currentUser.role === Role.TENANT_ADMIN &&
         user.tenantId.toString() !== currentUser.tenantId.toString()
     ) {
-        throw new Error("Cannot restore user from another tenant");
+        throw new AppError("Cannot restore user from another tenant", 403);
     }
 
     user.isActive = true;
@@ -184,7 +184,7 @@ export const  hardDeleteUser = async ({ userId, currentUser }: SoftDeleteUserInt
     if (
         currentUser.role !== Role.SUPER_ADMIN
     ) {
-        throw new Error("You are not authorized to hard delete users");
+        throw new AppError("You are not authorized to hard delete users", 401);
     }
     
     await User.findByIdAndDelete(userId);
