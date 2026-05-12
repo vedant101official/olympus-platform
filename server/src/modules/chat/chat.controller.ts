@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { AppError } from "../../core/middleware/error.middleware";
 
 import * as chatService from "./chat.service";
+import { Cursor } from 'mongoose';
 
 export const createChatRoom = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -67,5 +68,28 @@ export const getChatRoomMessages = async (req: Request, res: Response, next: Nex
         });
     } catch (error) {
         next(error);
+    }
+}
+
+export const getMessages = async (req: Request, res: Response, next: NextFunction ) => {
+    try {
+        const roomId = req.params.roomId as string;
+        const cursor = req.query.cursor as string;
+        const limit = parseInt(req.query.limit as string ) || 20;
+
+        const message = await chatService.getMessages(
+            roomId,
+            req.user,
+            cursor,
+            limit
+        );
+
+        res.status(200).json({
+            success: true,
+            data: message,
+        });
+
+    } catch (error) {
+        next(error)
     }
 }

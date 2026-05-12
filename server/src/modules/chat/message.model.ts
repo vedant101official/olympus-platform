@@ -1,4 +1,5 @@
-import mongoose from "mongoose";
+import mongoose, { mongo } from "mongoose";
+import { ref } from "node:process";
 
 const MessageSchema = new mongoose.Schema(
     {
@@ -20,7 +21,19 @@ const MessageSchema = new mongoose.Schema(
             type: String,
             enum: ["TEXT", "FILE", "IMAGE"],
             default: "TEXT"
-        }
+        },
+        deliveredTo:[
+            {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "User"
+            }
+        ],
+        seenBy: [
+            {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "User"
+            }
+        ]
     },
     { timestamps: true }
 );
