@@ -2,7 +2,7 @@ import { ChatRoom } from "./chatRoom.model";
 import { Message } from "./message.model";
 import { AppError } from "../../core/middleware/error.middleware";
 import { io } from "../../server";
-import mongoose from "mongoose";
+import mongoose, { StringQueryTypeCasting } from "mongoose";
 import { checkChatAccess } from "./chat.utils";
 
 interface CreateChatRoom {
@@ -79,6 +79,9 @@ export const getUserChatRooms = async ({ tenantId, userId }: GetUserChatRooms) =
 
 interface sendMessage {
     data: {
+        fileName: string | null | undefined;
+        fileSize: number | null | undefined;
+        fileUrl: string | null | undefined;
         chatRoomId: string;
         content: string;
         type: "TEXT" | "FILE" | "IMAGE";
@@ -100,15 +103,15 @@ export const sendMessage = async ({ data, currentUser }: sendMessage) => {
         throw new AppError("Chat room not found or user not a participant", 404);
     }
 
-    if(rooms.tenantId.toString() !== currentUser.tenantId) {
+    if (rooms.tenantId.toString() !== currentUser.tenantId) {
         throw new AppError("Unauthorized to send message in this room", 403);
     }
 
     const isParticipant = rooms.participants.some(
-        (id:any) =>  id.toString() === currentUser.userId
+        (id: any) => id.toString() === currentUser.userId
     );
 
-    if(!isParticipant) {
+    if (!isParticipant) {
         throw new AppError("Unauthorized to send message in this room", 403);
     }
 
@@ -117,6 +120,9 @@ export const sendMessage = async ({ data, currentUser }: sendMessage) => {
         senderId: currentUser.userId,
         content: data.content,
         type: data.type || "TEXT",
+        fileUrl: data.fileUrl,
+        fileName: data.fileName,
+        fileSize: data.fileSize,
         deliveredTo: [currentUser.userId],
         seenBy: [currentUser.userId]
     });
@@ -147,29 +153,28 @@ export const getChatRoomMessages = async ({ chatRoomId, tenantId, userId }: getC
     return messages;
 }
 
-
 export const getMessages = async (
-    roomId:string,
-    currentUser:any,
-    cursor? : string,
+    roomId: string,
+    currentUser: any,
+    cursor?: string,
     limit: number = 20
 ) => {
     const room = await checkChatAccess(roomId, currentUser);
 
     const query: any = {
-        chatRoomId:  roomId
+        chatRoomId: roomId
     };
     if (cursor) {
         if (!mongoose.Types.ObjectId.isValid(cursor)) {
             throw new AppError("Invalade cursor", 400);
         }
 
-        query._id = {$lt :new mongoose.Types.ObjectId(cursor)};
+        query._id = { $lt: new mongoose.Types.ObjectId(cursor) };
     }
     const message = await Message.find(query)
-    .sort({_id: -1})
-    .limit(limit)
-    .populate("senderId","name email");
+        .sort({ _id: -1 })
+        .limit(limit)
+        .populate("senderId", "name email");
 
     return message.reverse();
 }

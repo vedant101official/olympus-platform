@@ -31,4 +31,6 @@ app.get("/health", (req, res) => {
   res.status(200).json({ status: "OK" });
 });
 
+app.use("/uploads",express.static("upload"));
+
 export default app;

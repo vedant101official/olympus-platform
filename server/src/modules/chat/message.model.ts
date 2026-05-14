@@ -22,7 +22,7 @@ const MessageSchema = new mongoose.Schema(
             enum: ["TEXT", "FILE", "IMAGE"],
             default: "TEXT"
         },
-        deliveredTo:[
+        deliveredTo: [
             {
                 type: mongoose.Schema.Types.ObjectId,
                 ref: "User"
@@ -33,7 +33,16 @@ const MessageSchema = new mongoose.Schema(
                 type: mongoose.Schema.Types.ObjectId,
                 ref: "User"
             }
-        ]
+        ],
+        fileUrl: {
+            type: String
+        },
+        fileName: {
+            type: String
+        },
+        fileSize: {
+            type: Number
+        }
     },
     { timestamps: true }
 );

@@ -93,3 +93,25 @@ export const getMessages = async (req: Request, res: Response, next: NextFunctio
         next(error)
     }
 }
+
+export const uploadFile = async (req: Request, res: Response, next: NextFunction ) => {
+    try{
+        const file = req.file;
+        if (!file) {
+            throw new AppError("File not found", 400);
+        }
+        const fileUrl = `${req.protocol}://${req.get("host")}/uploads/${file.filename}`;
+        res.status(201).json({
+            success: true,
+            data : {
+               fileName : file.originalname,
+               fileUrl,
+               fileSize: file.size
+
+            }
+        });
+        
+    } catch (error) {
+        next(error);
+    }
+}
