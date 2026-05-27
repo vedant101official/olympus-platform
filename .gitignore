@@ -24,6 +24,9 @@ pids
 # Coverage reports
 coverage/
 
+# uploads
+uploads/*
+
 # Build output
 dist/
 build/
