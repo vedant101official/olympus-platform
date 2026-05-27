@@ -5,6 +5,7 @@ import tenantRoutes from "./modules/tenants/tenants.routes";
 import userRoutes from "./modules/users/user.routes";
 import authRoutes from "./modules/auth/auth.routes";
 import chatRoutes from "./modules/chat/chat.routes";
+import aiRoutes from "./modules/ai/ai.routes"
 import { errorMiddleware } from "./core/middleware/error.middleware";
 import { LogMiddleware, ResponseTimeLogMiddleware } from "./core/middleware/log.middleware";
 
@@ -23,6 +24,7 @@ app.use("/api/tenants", tenantRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/chats", chatRoutes);
+app.use("/api/ai", aiRoutes);
 
 app.use(errorMiddleware);
 
