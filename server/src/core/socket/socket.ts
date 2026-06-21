@@ -64,5 +64,27 @@ export const initSocket = () => {
             })
         })
 
+        Socket.on("callUser",({ roomId, offer})=>{
+            const user = Socket.data.user;
+            Socket.to(roomId).emit("incommingCall", {
+                from: user.userId,
+                offer
+            });
+        });
+
+        Socket.on("answereCall",({ roomId, answer })=>{
+            const user = Socket.data.user;
+            Socket.to(roomId).emit("callAnswered",{
+                from: user.userId,
+                answer
+            });
+        });
+
+        Socket.on("iceCandidate",({roomId, candidate})=>{
+            Socket.to(roomId).emit("iceCandidate",{
+                candidate
+            });
+        });
+
     })
 }
